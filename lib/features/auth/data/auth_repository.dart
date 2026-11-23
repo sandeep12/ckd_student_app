@@ -12,10 +12,11 @@ class AuthRepository {
   final ApiClient _api;
   final TokenStorage _tokens;
 
-  /// `POST /auth/login`. Throws [ApiException] on failure
+  /// `POST /auth/login`. Returns either an authenticated session or an
+  /// MFA challenge. Throws [ApiException] on failure
   /// (`VALIDATION_ERROR`, `TERMS_NOT_ACCEPTED`, `INVALID_CREDENTIALS`,
   /// `ACCOUNT_LOCKED`, network).
-  Future<AuthSession> login({
+  Future<LoginOutcome> login({
     required String email,
     required String password,
     required bool termsAccepted,
@@ -25,21 +26,48 @@ class AuthRepository {
       'password': password,
       'termsAccepted': termsAccepted,
     });
-    final session = AuthSession.fromJson(data);
-    await _tokens.save(
-      accessToken: session.accessToken,
-      refreshToken: session.refreshToken,
+    final outcome = LoginOutcome.fromJson(data);
+    if (outcome is LoginAuthenticated) {
+      await _saveSession(outcome.session);
+    }
+    return outcome;
+  }
+
+  /// `POST /auth/mfa/verify` with the emailed one-time code.
+  /// Throws [ApiException] (`MFA_CHALLENGE_EXPIRED`, incorrect code,
+  /// too many attempts, network).
+  Future<AuthSession> verifyMfa({
+    required String challengeToken,
+    required String code,
+  }) async {
+    final data = await _api.post('/auth/mfa/verify', body: {
+      'challengeToken': challengeToken,
+      'code': code,
+    });
+    final session = AuthSession.fromJson(
+      data is Map<String, dynamic> ? (data['session'] ?? data) : data,
     );
+    await _saveSession(session);
     return session;
+  }
+
+  /// `POST /auth/mfa/resend`. Returns the new challenge when the backend
+  /// issues one, otherwise null (the old token stays valid).
+  Future<MfaChallenge?> resendMfa({required String challengeToken}) async {
+    final data = await _api.post('/auth/mfa/resend', body: {
+      'challengeToken': challengeToken,
+    });
+    if (data is Map<String, dynamic>) {
+      return MfaChallenge.tryParse(data['challenge'] ?? data);
+    }
+    return null;
   }
 
   /// `GET /auth/me`.
   Future<AuthUser?> me() async {
     final token = await _tokens.readAccessToken();
     final data = await _api.get('/auth/me', accessToken: token);
-    return AuthUser.tryParse(
-      data is Map<String, dynamic> ? (data['user'] ?? data) : data,
-    );
+    return AuthUser.tryParse(data);
   }
 
   /// `POST /auth/refresh`.
@@ -48,11 +76,10 @@ class AuthRepository {
     final data = await _api.post('/auth/refresh', body: {
       if (refreshToken != null) 'refreshToken': refreshToken,
     });
-    final session = AuthSession.fromJson(data);
-    await _tokens.save(
-      accessToken: session.accessToken,
-      refreshToken: session.refreshToken,
+    final session = AuthSession.fromJson(
+      data is Map<String, dynamic> ? (data['session'] ?? data) : data,
     );
+    await _saveSession(session);
     return session;
   }
 
@@ -65,4 +92,9 @@ class AuthRepository {
       await _tokens.clear();
     }
   }
+
+  Future<void> _saveSession(AuthSession session) => _tokens.save(
+        accessToken: session.accessToken,
+        refreshToken: session.refreshToken,
+      );
 }

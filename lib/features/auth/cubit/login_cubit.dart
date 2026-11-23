@@ -41,6 +41,16 @@ class LoginCubit extends Cubit<LoginState> {
     emit(state.copyWith(termsAccepted: accepted));
   }
 
+  /// Called after navigating to the verify screen, so returning to the
+  /// login page does not re-trigger navigation.
+  void challengeHandled() {
+    emit(state.copyWith(
+      status: LoginStatus.idle,
+      challenge: () => null,
+      password: '',
+    ));
+  }
+
   Future<void> submit() async {
     if (!state.canSubmit) return;
 
@@ -57,29 +67,25 @@ class LoginCubit extends Cubit<LoginState> {
     ));
 
     try {
-      final session = await _authRepository.login(
+      final outcome = await _authRepository.login(
         email: state.email,
         password: state.password,
         termsAccepted: state.termsAccepted,
       );
       if (isClosed) return;
 
-      if (session.mfaRequired) {
-        // MFA endpoints exist on the backend but the MFA screens are not
-        // part of this build.
-        emit(state.copyWith(
-          status: LoginStatus.failure,
-          errorMessage: () =>
-              'This account requires multi-factor authentication, which '
-              'is not available in this build yet.',
-        ));
-        return;
+      switch (outcome) {
+        case LoginMfaRequired(:final challenge):
+          emit(state.copyWith(
+            status: LoginStatus.mfaRequired,
+            challenge: () => challenge,
+          ));
+        case LoginAuthenticated(:final session):
+          emit(state.copyWith(
+            status: LoginStatus.success,
+            session: () => session,
+          ));
       }
-
-      emit(state.copyWith(
-        status: LoginStatus.success,
-        user: () => session.user,
-      ));
     } on ApiException catch (e) {
       if (isClosed) return;
 

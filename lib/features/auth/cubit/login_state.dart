@@ -1,7 +1,7 @@
 part of 'login_cubit.dart';
 
 /// Submission lifecycle of the login form.
-enum LoginStatus { idle, submitting, success, failure }
+enum LoginStatus { idle, submitting, success, mfaRequired, failure }
 
 class LoginState extends Equatable {
   const LoginState({
@@ -13,7 +13,8 @@ class LoginState extends Equatable {
     this.status = LoginStatus.idle,
     this.errorMessage,
     this.serverFieldErrors = const {},
-    this.user,
+    this.session,
+    this.challenge,
   });
 
   final String email;
@@ -34,8 +35,11 @@ class LoginState extends Equatable {
   /// Field path → message from the backend's `VALIDATION_ERROR` details.
   final Map<String, String> serverFieldErrors;
 
-  /// Signed-in user after a successful login.
-  final AuthUser? user;
+  /// Authenticated session after a successful (non-MFA) login.
+  final AuthSession? session;
+
+  /// MFA challenge when the backend requires a one-time code.
+  final MfaChallenge? challenge;
 
   static final RegExp _emailPattern =
       RegExp(r'^[\w.\-+]+@[\w\-]+(\.[\w\-]+)+$');
@@ -76,7 +80,8 @@ class LoginState extends Equatable {
     LoginStatus? status,
     String? Function()? errorMessage,
     Map<String, String>? serverFieldErrors,
-    AuthUser? Function()? user,
+    AuthSession? Function()? session,
+    MfaChallenge? Function()? challenge,
   }) {
     return LoginState(
       email: email ?? this.email,
@@ -88,7 +93,8 @@ class LoginState extends Equatable {
       errorMessage:
           errorMessage != null ? errorMessage() : this.errorMessage,
       serverFieldErrors: serverFieldErrors ?? this.serverFieldErrors,
-      user: user != null ? user() : this.user,
+      session: session != null ? session() : this.session,
+      challenge: challenge != null ? challenge() : this.challenge,
     );
   }
 
@@ -102,6 +108,7 @@ class LoginState extends Equatable {
         status,
         errorMessage,
         serverFieldErrors,
-        user,
+        session,
+        challenge,
       ];
 }
