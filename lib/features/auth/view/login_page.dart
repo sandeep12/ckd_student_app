@@ -2,10 +2,10 @@ import 'package:ckd_design_system/ckd_design_system.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:material_ui/material_ui.dart';
 
-import '../../shell/view/student_shell.dart';
 import '../cubit/login_cubit.dart';
 import '../data/auth_repository.dart';
-import 'mfa_verify_page.dart';
+import '../data/models/auth_models.dart';
+import 'login_flow.dart';
 import 'widgets/auth_shell.dart';
 import 'widgets/login_form.dart';
 
@@ -21,23 +21,26 @@ class LoginPage extends StatelessWidget {
       child: BlocListener<LoginCubit, LoginState>(
         listenWhen: (previous, current) => previous.status != current.status,
         listener: (context, state) {
-          switch (state.status) {
-            case LoginStatus.mfaRequired:
-              final challenge = state.challenge;
-              if (challenge != null) {
-                context.read<LoginCubit>().challengeHandled();
-                Navigator.of(context).push(MfaVerifyPage.route(challenge));
-              }
-            case LoginStatus.success:
-              Navigator.of(context).pushAndRemoveUntil(
-                StudentShell.route(),
-                (route) => false,
-              );
-            case LoginStatus.idle:
-            case LoginStatus.submitting:
-            case LoginStatus.failure:
-              break;
-          }
+          final cubit = context.read<LoginCubit>();
+          final LoginOutcome? outcome = switch (state.status) {
+            LoginStatus.mfaRequired => state.challenge == null
+                ? null
+                : LoginMfaRequired(state.challenge!),
+            LoginStatus.passwordResetRequired ||
+            LoginStatus.mfaEnrolmentRequired =>
+              state.setupTicket == null
+                  ? null
+                  : state.status == LoginStatus.passwordResetRequired
+                      ? LoginPasswordResetRequired(state.setupTicket!)
+                      : LoginMfaEnrolmentRequired(state.setupTicket!),
+            LoginStatus.success => LoginAuthenticated(
+                state.session ?? const AuthSession(),
+              ),
+            _ => null,
+          };
+          if (outcome == null) return;
+          if (outcome is! LoginAuthenticated) cubit.challengeHandled();
+          LoginFlow.continueWith(context, outcome);
         },
         child: AuthShell(
           heroArt: DsAuthArt.graduationCap,

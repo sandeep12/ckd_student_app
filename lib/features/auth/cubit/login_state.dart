@@ -1,7 +1,15 @@
 part of 'login_cubit.dart';
 
 /// Submission lifecycle of the login form.
-enum LoginStatus { idle, submitting, success, mfaRequired, failure }
+enum LoginStatus {
+  idle,
+  submitting,
+  success,
+  mfaRequired,
+  passwordResetRequired,
+  mfaEnrolmentRequired,
+  failure,
+}
 
 class LoginState extends Equatable {
   const LoginState({
@@ -15,6 +23,7 @@ class LoginState extends Equatable {
     this.serverFieldErrors = const {},
     this.session,
     this.challenge,
+    this.setupTicket,
   });
 
   final String email;
@@ -40,6 +49,9 @@ class LoginState extends Equatable {
 
   /// MFA challenge when the backend requires a one-time code.
   final MfaChallenge? challenge;
+
+  /// First-time setup ticket (forced password change / MFA enrolment).
+  final SetupTicket? setupTicket;
 
   static final RegExp _emailPattern =
       RegExp(r'^[\w.\-+]+@[\w\-]+(\.[\w\-]+)+$');
@@ -79,6 +91,7 @@ class LoginState extends Equatable {
     Map<String, String>? serverFieldErrors,
     AuthSession? Function()? session,
     MfaChallenge? Function()? challenge,
+    SetupTicket? Function()? setupTicket,
   }) {
     return LoginState(
       email: email ?? this.email,
@@ -91,6 +104,7 @@ class LoginState extends Equatable {
       serverFieldErrors: serverFieldErrors ?? this.serverFieldErrors,
       session: session != null ? session() : this.session,
       challenge: challenge != null ? challenge() : this.challenge,
+      setupTicket: setupTicket != null ? setupTicket() : this.setupTicket,
     );
   }
 
@@ -106,5 +120,6 @@ class LoginState extends Equatable {
         serverFieldErrors,
         session,
         challenge,
+        setupTicket,
       ];
 }

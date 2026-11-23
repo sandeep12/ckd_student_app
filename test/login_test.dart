@@ -52,6 +52,11 @@ class _FakeAuthRepository implements AuthRepository {
 
   @override
   Future<void> logout() async {}
+
+  // Tolerates repository methods these tests do not exercise.
+  @override
+  dynamic noSuchMethod(Invocation invocation) =>
+      super.noSuchMethod(invocation);
 }
 
 LoginCubit _loginCubit({Future<LoginOutcome> Function()? loginHandler}) =>

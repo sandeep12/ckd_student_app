@@ -93,6 +93,58 @@ class AuthRepository {
     }
   }
 
+  /// `POST /auth/reset-password {setupToken, password}` — the forced
+  /// first-login password change. Answers the next login step. Throws
+  /// [ApiException] (`SAME_AS_TEMP`, `SETUP_SESSION_EXPIRED`,
+  /// `VALIDATION_ERROR`, network).
+  Future<LoginOutcome> resetPassword({
+    required String setupToken,
+    required String password,
+  }) async {
+    final data = await _api.post('/auth/reset-password', body: {
+      'setupToken': setupToken,
+      'password': password,
+    });
+    final outcome = LoginOutcome.fromJson(data);
+    if (outcome is LoginAuthenticated) {
+      await _saveSession(outcome.session);
+    }
+    return outcome;
+  }
+
+  /// `POST /auth/mfa/enrol/start {setupToken, method}`. The student app
+  /// only offers `email`, which sends a 6-digit code.
+  Future<void> startMfaEnrolment({
+    required String setupToken,
+    String method = 'email',
+  }) async {
+    await _api.post('/auth/mfa/enrol/start', body: {
+      'setupToken': setupToken,
+      'method': method,
+    });
+  }
+
+  /// `POST /auth/mfa/enrol/confirm {setupToken, code}` →
+  /// `{backupCodes, session}`.
+  Future<MfaEnrolmentResult> confirmMfaEnrolment({
+    required String setupToken,
+    required String code,
+  }) async {
+    final data = await _api.post('/auth/mfa/enrol/confirm', body: {
+      'setupToken': setupToken,
+      'code': code,
+    });
+    final map = data is Map<String, dynamic> ? data : const <String, dynamic>{};
+    final session = AuthSession.fromJson(map['session']);
+    await _saveSession(session);
+    return MfaEnrolmentResult(
+      backupCodes: map['backupCodes'] is List
+          ? (map['backupCodes'] as List).whereType<String>().toList()
+          : const [],
+      session: session,
+    );
+  }
+
   Future<void> _saveSession(AuthSession session) => _tokens.save(
         accessToken: session.accessToken,
         refreshToken: session.refreshToken,

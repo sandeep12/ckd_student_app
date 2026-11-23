@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/api/api_exception.dart';
 import '../data/auth_repository.dart';
 import '../data/models/auth_models.dart';
+import 'auth_error_messages.dart';
 
 part 'login_state.dart';
 
@@ -47,6 +48,7 @@ class LoginCubit extends Cubit<LoginState> {
     emit(state.copyWith(
       status: LoginStatus.idle,
       challenge: () => null,
+      setupTicket: () => null,
       password: '',
     ));
   }
@@ -80,6 +82,16 @@ class LoginCubit extends Cubit<LoginState> {
             status: LoginStatus.mfaRequired,
             challenge: () => challenge,
           ));
+        case LoginPasswordResetRequired(:final ticket):
+          emit(state.copyWith(
+            status: LoginStatus.passwordResetRequired,
+            setupTicket: () => ticket,
+          ));
+        case LoginMfaEnrolmentRequired(:final ticket):
+          emit(state.copyWith(
+            status: LoginStatus.mfaEnrolmentRequired,
+            setupTicket: () => ticket,
+          ));
         case LoginAuthenticated(:final session):
           emit(state.copyWith(
             status: LoginStatus.success,
@@ -100,7 +112,7 @@ class LoginCubit extends Cubit<LoginState> {
 
       emit(state.copyWith(
         status: LoginStatus.failure,
-        errorMessage: () => e.message,
+        errorMessage: () => AuthErrorMessages.forLogin(e),
       ));
     }
   }

@@ -6,6 +6,7 @@ import '../../shell/view/student_shell.dart';
 import '../cubit/mfa_cubit.dart';
 import '../data/auth_repository.dart';
 import '../data/models/auth_models.dart';
+import 'mfa_method_page.dart';
 import 'widgets/auth_shell.dart';
 
 /// "Verify it's you" (Figma: "17 · Verify it's you (Web)" /
@@ -101,7 +102,7 @@ class _MfaForm extends StatelessWidget {
               value: state.code,
               compact: compact,
               error: state.showIncomplete || hasError,
-              enabled: !state.isVerifying,
+              enabled: !state.isVerifying && !state.isBlocked,
               autofocus: true,
               onChanged: cubit.codeChanged,
               onCompleted: (_) => cubit.submit(),
@@ -114,36 +115,55 @@ class _MfaForm extends StatelessWidget {
             const SizedBox(height: DsSpacing.stackLg),
 
             // Resend row
-            Row(
-              children: [
-                Text(
-                  'Did not get it?',
-                  style: DsTypography.bodySm
-                      .copyWith(color: DsColors.textSecondary),
-                ),
-                const SizedBox(width: DsSpacing.inlineSm),
-                DsLink(
-                  label: state.isResending ? 'Sending…' : 'Send a new code',
-                  onTap: state.isResending || state.isVerifying
-                      ? null
-                      : cubit.resend,
-                ),
-              ],
-            ),
+            if (!state.isBlocked)
+              Row(
+                children: [
+                  Text(
+                    'Did not get it?',
+                    style: DsTypography.bodySm
+                        .copyWith(color: DsColors.textSecondary),
+                  ),
+                  const SizedBox(width: DsSpacing.inlineSm),
+                  DsLink(
+                    label: state.isResending ? 'Sending…' : 'Send a new code',
+                    onTap: state.isResending || state.isVerifying
+                        ? null
+                        : cubit.resend,
+                  ),
+                ],
+              ),
             const SizedBox(height: DsSpacing.stackLg),
 
-            DsButton(
-              label: 'Verify and continue',
-              loading: state.isVerifying,
-              onPressed: state.canSubmit ? cubit.submit : null,
-            ),
+            if (state.isBlocked)
+              DsButton(
+                label: 'Back to sign in',
+                onPressed: () =>
+                    Navigator.of(context).popUntil((route) => route.isFirst),
+              )
+            else
+              DsButton(
+                label: 'Verify and continue',
+                loading: state.isVerifying,
+                onPressed: state.canSubmit ? cubit.submit : null,
+              ),
             const SizedBox(height: DsSpacing.stackLg),
-            DsLink(
-              label: 'Use a different account',
-              touchRow: compact,
-              onTap:
-                  state.isVerifying ? null : () => Navigator.of(context).pop(),
-            ),
+            if (!state.isExpired)
+              DsLink(
+                label: 'Try another way',
+                touchRow: compact,
+                onTap: state.isVerifying
+                    ? null
+                    : () => Navigator.of(context)
+                        .push(MfaMethodPage.route(state.challenge)),
+              ),
+            if (!state.isBlocked)
+              DsLink(
+                label: 'Use a different account',
+                touchRow: compact,
+                onTap: state.isVerifying
+                    ? null
+                    : () => Navigator.of(context).pop(),
+              ),
 
             if (!compact) ...[
               const SizedBox(height: DsSpacing.stackXl * 2),

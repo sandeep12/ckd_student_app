@@ -131,7 +131,17 @@ sealed class LoginOutcome {
 
   static LoginOutcome fromJson(dynamic json) {
     if (json is Map<String, dynamic>) {
-      if (json['status'] == 'mfa_required') {
+      final status = json['status'];
+      if (status == 'password_reset_required' ||
+          status == 'mfa_enrolment_required') {
+        final ticket = SetupTicket.tryParse(json['setup']);
+        if (ticket != null) {
+          return status == 'password_reset_required'
+              ? LoginPasswordResetRequired(ticket)
+              : LoginMfaEnrolmentRequired(ticket);
+        }
+      }
+      if (status == 'mfa_required') {
         final challenge = MfaChallenge.tryParse(json['challenge']);
         if (challenge != null) return LoginMfaRequired(challenge);
       }
@@ -153,4 +163,57 @@ class LoginAuthenticated extends LoginOutcome {
 class LoginMfaRequired extends LoginOutcome {
   const LoginMfaRequired(this.challenge);
   final MfaChallenge challenge;
+}
+
+/// First-time setup ticket (`data.setup`) returned with
+/// `password_reset_required` / `mfa_enrolment_required`. Its token is
+/// short-lived (30 min); expiry answers `SETUP_SESSION_EXPIRED`.
+class SetupTicket extends Equatable {
+  const SetupTicket({required this.setupToken, this.expiresAt, this.user});
+
+  final String setupToken;
+  final DateTime? expiresAt;
+  final AuthUser? user;
+
+  static SetupTicket? tryParse(dynamic json) {
+    if (json is! Map<String, dynamic>) return null;
+    final token = json['setupToken'];
+    if (token is! String || token.isEmpty) return null;
+    return SetupTicket(
+      setupToken: token,
+      expiresAt: json['expiresAt'] is String
+          ? DateTime.tryParse(json['expiresAt'] as String)
+          : null,
+      user: AuthUser.tryParse(json['user']),
+    );
+  }
+
+  @override
+  List<Object?> get props => [setupToken, expiresAt, user];
+}
+
+/// First login with a temporary password: a new one must be set
+/// (`POST /auth/reset-password`).
+class LoginPasswordResetRequired extends LoginOutcome {
+  const LoginPasswordResetRequired(this.ticket);
+  final SetupTicket ticket;
+}
+
+/// The account has no MFA method yet: it must enrol one
+/// (`POST /auth/mfa/enrol/start` + `/confirm`).
+class LoginMfaEnrolmentRequired extends LoginOutcome {
+  const LoginMfaEnrolmentRequired(this.ticket);
+  final SetupTicket ticket;
+}
+
+/// Result of `POST /auth/mfa/enrol/confirm`: one-time backup codes
+/// (shown once) and the opened session.
+class MfaEnrolmentResult extends Equatable {
+  const MfaEnrolmentResult({required this.backupCodes, required this.session});
+
+  final List<String> backupCodes;
+  final AuthSession session;
+
+  @override
+  List<Object?> get props => [backupCodes, session];
 }

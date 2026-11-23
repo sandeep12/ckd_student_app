@@ -3,6 +3,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../cubit/login_cubit.dart';
+import '../forgot_password_page.dart';
 
 /// The sign-in form, shared by the web and mobile layouts.
 ///
@@ -108,13 +109,11 @@ class _LoginFormState extends State<LoginForm> {
             DsLink(
               label: 'Forgot password?',
               touchRow: compact,
-              onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Password reset is not part of this build.'),
-                  ),
-                );
-              },
+              onTap: state.isSubmitting
+                  ? null
+                  : () => Navigator.of(context).push(
+                        ForgotPasswordPage.route(initialEmail: state.email),
+                      ),
             ),
             const SizedBox(height: DsSpacing.stackLg),
 
