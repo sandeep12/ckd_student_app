@@ -231,9 +231,10 @@ void main() {
 
       await tester.pumpWidget(_shell(_FakeDashboardRepository()));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Profile'));
+      // Exams/Profile are covered in exams_profile_test.dart.
+      await tester.tap(find.text('Grades'));
       await tester.pumpAndSettle();
-      expect(find.text('Sign out'), findsOneWidget);
+      expect(find.text('Coming soon'), findsOneWidget);
     });
   });
 }

@@ -50,6 +50,26 @@ class ApiClient {
     return _unwrap(response);
   }
 
+  Future<dynamic> put(
+    String path, {
+    Object? body,
+    String? accessToken,
+  }) async {
+    final http.Response response;
+    try {
+      response = await _http
+          .put(
+            _uri(path),
+            headers: _headers(accessToken),
+            body: jsonEncode(body ?? const {}),
+          )
+          .timeout(_timeout);
+    } on Exception {
+      throw const ApiException.network();
+    }
+    return _unwrap(response);
+  }
+
   Future<dynamic> get(String path, {String? accessToken}) async {
     final http.Response response;
     try {

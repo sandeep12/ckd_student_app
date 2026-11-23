@@ -12,6 +12,13 @@ import '../../dashboard/cubit/dashboard_cubit.dart';
 import '../../dashboard/cubit/open_exam_cubit.dart';
 import '../../dashboard/data/dashboard_repository.dart';
 import '../../dashboard/view/dashboard_page.dart';
+import '../../exams/cubit/my_exams_cubit.dart';
+import '../../exams/data/models/student_exam.dart';
+import '../../exams/data/exams_repository.dart';
+import '../../exams/view/my_exams_page.dart';
+import '../../profile/cubit/profile_cubit.dart';
+import '../../profile/data/profile_repository.dart';
+import '../../profile/view/profile_page.dart';
 import 'placeholder_section.dart';
 
 /// Top-level sections of the student app.
@@ -22,10 +29,17 @@ enum ShellSection { dashboard, exams, grades, notifications, profile }
 /// ≥ [wideBreakpoint]: cobalt TopBar + SidebarNav + floating page panel
 /// (web). Below: light app bar + bottom TabBar (mobile).
 class StudentShell extends StatefulWidget {
-  const StudentShell({super.key, this.dashboardRepository});
+  const StudentShell({
+    super.key,
+    this.dashboardRepository,
+    this.examsRepository,
+    this.profileRepository,
+  });
 
   /// Injectable for tests.
   final DashboardRepository? dashboardRepository;
+  final ExamsRepository? examsRepository;
+  final ProfileRepository? profileRepository;
 
   static const double wideBreakpoint = 900;
 
@@ -65,34 +79,65 @@ class _StudentShellState extends State<StudentShell> {
 
   ShellSection _section = ShellSection.dashboard;
   late final DashboardRepository _repository;
+  late final ProfileRepository _profileRepository;
   late final DashboardCubit _dashboardCubit;
   late final OpenExamCubit _openExamCubit;
+  late final MyExamsCubit _myExamsCubit;
+  late final ProfileCubit _profileCubit;
 
   @override
   void initState() {
     super.initState();
     final auth = context.read<AuthRepository>();
-    _repository = widget.dashboardRepository ??
-        DashboardRepository(
-          api: AuthorizedApi(
-            apiClient: ApiClient(baseUrl: ApiConfig.baseUrl),
-            tokenStorage: TokenStorage(),
-            refreshSession: auth.refresh,
-            onSessionExpired: _signOut,
-          ),
-        );
+    final tokens = TokenStorage();
+    final api = AuthorizedApi(
+      apiClient: ApiClient(baseUrl: ApiConfig.baseUrl),
+      tokenStorage: tokens,
+      refreshSession: auth.refresh,
+      onSessionExpired: _signOut,
+    );
+    _repository = widget.dashboardRepository ?? DashboardRepository(api: api);
+    _profileRepository = widget.profileRepository ??
+        ProfileRepository(api: api, tokenStorage: tokens);
     _dashboardCubit = DashboardCubit(repository: _repository)..load();
     _openExamCubit = OpenExamCubit(repository: _repository);
+    // Loaded on first visit to each section.
+    _myExamsCubit = MyExamsCubit(
+      repository: widget.examsRepository ?? ExamsRepository(api: api),
+    );
+    _profileCubit = ProfileCubit(repository: _profileRepository);
   }
 
   @override
   void dispose() {
     _dashboardCubit.close();
     _openExamCubit.close();
+    _myExamsCubit.close();
+    _profileCubit.close();
     super.dispose();
   }
 
-  void _go(ShellSection section) => setState(() => _section = section);
+  void _go(ShellSection section) {
+    if (section == ShellSection.exams &&
+        _myExamsCubit.state.status == MyExamsStatus.initial) {
+      _myExamsCubit.load();
+    }
+    if (section == ShellSection.profile &&
+        _profileCubit.state.status == ProfileStatus.initial) {
+      _profileCubit.load();
+    }
+    setState(() => _section = section);
+  }
+
+  void _onScan(StudentExam exam) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'Scanning “${exam.title}” is coming in the Scan Paper module.',
+        ),
+      ),
+    );
+  }
 
   Future<void> _signOut() async {
     final navigator = Navigator.of(context);
@@ -116,9 +161,9 @@ class _StudentShellState extends State<StudentShell> {
           onViewAllNotifications: () => _go(ShellSection.notifications),
           onViewAllResults: () => _go(ShellSection.grades),
         ),
-      ShellSection.exams => const PlaceholderSection(
-          title: 'My Exams',
-          message: 'Your exam list is coming in the next module.',
+      ShellSection.exams => MyExamsPage(
+          wide: wide,
+          onScan: wide ? null : _onScan,
         ),
       ShellSection.grades => const PlaceholderSection(
           title: 'Grades',
@@ -128,40 +173,40 @@ class _StudentShellState extends State<StudentShell> {
           title: 'Notifications',
           message: 'The full notifications inbox is coming in a later module.',
         ),
-      ShellSection.profile => PlaceholderSection(
-          title: 'Profile',
-          message: 'Profile details are coming in a later module.',
-          action: DsButton(
-            label: 'Sign out',
-            size: DsButtonSize.md,
-            tone: DsButtonTone.secondary,
-            expand: false,
-            onPressed: _signOut,
-          ),
+      ShellSection.profile => ProfilePage(
+          wide: wide,
+          onSignOut: _signOut,
+          schoolName: _dashboardCubit.state.dashboard?.schoolName,
         ),
     };
   }
 
   @override
   Widget build(BuildContext context) {
-    return MultiBlocProvider(
-      providers: [
-        BlocProvider.value(value: _dashboardCubit),
-        BlocProvider.value(value: _openExamCubit),
-      ],
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final wide = constraints.maxWidth >= StudentShell.wideBreakpoint;
-          return BlocBuilder<DashboardCubit, DashboardState>(
-            buildWhen: (a, b) => a.dashboard != b.dashboard,
-            builder: (context, state) {
-              final hasUnread = (state.dashboard?.unreadNotifications ?? 0) > 0;
-              return wide
-                  ? _buildWeb(state, hasUnread)
-                  : _buildMobile(hasUnread);
-            },
-          );
-        },
+    return RepositoryProvider.value(
+      value: _profileRepository,
+      child: MultiBlocProvider(
+        providers: [
+          BlocProvider.value(value: _dashboardCubit),
+          BlocProvider.value(value: _openExamCubit),
+          BlocProvider.value(value: _myExamsCubit),
+          BlocProvider.value(value: _profileCubit),
+        ],
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final wide = constraints.maxWidth >= StudentShell.wideBreakpoint;
+            return BlocBuilder<DashboardCubit, DashboardState>(
+              buildWhen: (a, b) => a.dashboard != b.dashboard,
+              builder: (context, state) {
+                final hasUnread =
+                    (state.dashboard?.unreadNotifications ?? 0) > 0;
+                return wide
+                    ? _buildWeb(state, hasUnread)
+                    : _buildMobile(hasUnread);
+              },
+            );
+          },
+        ),
       ),
     );
   }

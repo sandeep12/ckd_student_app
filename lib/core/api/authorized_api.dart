@@ -29,6 +29,9 @@ class AuthorizedApi {
   Future<dynamic> post(String path, {Object? body}) =>
       _withRetry((token) => _api.post(path, body: body, accessToken: token));
 
+  Future<dynamic> put(String path, {Object? body}) =>
+      _withRetry((token) => _api.put(path, body: body, accessToken: token));
+
   Future<dynamic> _withRetry(
     Future<dynamic> Function(String? token) call,
   ) async {
