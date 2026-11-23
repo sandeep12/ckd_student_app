@@ -31,8 +31,7 @@ class _FakeAuthRepository implements AuthRepository {
     required String password,
     required bool termsAccepted,
   }) =>
-      loginHandler?.call() ??
-      Future.value(const LoginAuthenticated(_session));
+      loginHandler?.call() ?? Future.value(const LoginAuthenticated(_session));
 
   @override
   Future<AuthSession> verifyMfa({
@@ -177,8 +176,7 @@ void main() {
   });
 
   group('MfaCubit', () {
-    MfaCubit cubit({Future<AuthSession> Function()? verifyHandler}) =>
-        MfaCubit(
+    MfaCubit cubit({Future<AuthSession> Function()? verifyHandler}) => MfaCubit(
           authRepository: _FakeAuthRepository(verifyHandler: verifyHandler),
           challenge: _challenge,
         );
@@ -206,8 +204,7 @@ void main() {
       },
       expect: () => [
         isA<MfaState>().having((s) => s.code, 'code', '369964'),
-        isA<MfaState>()
-            .having((s) => s.status, 'status', MfaStatus.verifying),
+        isA<MfaState>().having((s) => s.status, 'status', MfaStatus.verifying),
         isA<MfaState>()
             .having((s) => s.status, 'status', MfaStatus.success)
             .having((s) => s.session, 'session', _session),
@@ -229,8 +226,7 @@ void main() {
       },
       expect: () => [
         isA<MfaState>().having((s) => s.code, 'code', '000000'),
-        isA<MfaState>()
-            .having((s) => s.status, 'status', MfaStatus.verifying),
+        isA<MfaState>().having((s) => s.status, 'status', MfaStatus.verifying),
         isA<MfaState>()
             .having((s) => s.status, 'status', MfaStatus.failure)
             .having((s) => s.code, 'code', isEmpty)
@@ -243,8 +239,7 @@ void main() {
       build: cubit,
       act: (c) => c.resend(),
       expect: () => [
-        isA<MfaState>()
-            .having((s) => s.status, 'status', MfaStatus.resending),
+        isA<MfaState>().having((s) => s.status, 'status', MfaStatus.resending),
         isA<MfaState>()
             .having((s) => s.status, 'status', MfaStatus.idle)
             .having((s) => s.challenge.challengeToken, 'token', 'new-token')

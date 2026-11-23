@@ -104,9 +104,8 @@ class AuthSession extends Equatable {
 
   factory AuthSession.fromJson(dynamic json) {
     if (json is! Map<String, dynamic>) return const AuthSession();
-    DateTime? date(String key) => json[key] is String
-        ? DateTime.tryParse(json[key] as String)
-        : null;
+    DateTime? date(String key) =>
+        json[key] is String ? DateTime.tryParse(json[key] as String) : null;
     return AuthSession(
       user: AuthUser.tryParse(json['user']),
       accessToken: json['accessToken'] as String?,

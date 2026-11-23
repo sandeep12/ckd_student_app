@@ -2,7 +2,7 @@ import 'package:ckd_design_system/ckd_design_system.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:material_ui/material_ui.dart';
 
-import '../../home/view/home_page.dart';
+import '../../shell/view/student_shell.dart';
 import '../cubit/mfa_cubit.dart';
 import '../data/auth_repository.dart';
 import '../data/models/auth_models.dart';
@@ -32,15 +32,14 @@ class MfaVerifyPage extends StatelessWidget {
             current.status == MfaStatus.success,
         listener: (context, state) {
           Navigator.of(context).pushAndRemoveUntil(
-            HomePage.route(state.session?.user),
+            StudentShell.route(),
             (route) => false,
           );
         },
         child: AuthShell(
           heroArt: DsAuthArt.mailSent,
           heroTitle: 'One more step\nto keep you safe',
-          heroBody:
-              'We send a short code to your school email every time you '
+          heroBody: 'We send a short code to your school email every time you '
               'sign in. It keeps your results and answer sheets yours '
               'alone.',
           minCardHeight: 600,
@@ -85,8 +84,8 @@ class _MfaForm extends StatelessWidget {
             Text(
               'Enter the 6-digit code we emailed to $maskedEmail. '
               'It expires in 10 minutes.',
-              style: DsTypography.bodySm
-                  .copyWith(color: DsColors.textSecondary),
+              style:
+                  DsTypography.bodySm.copyWith(color: DsColors.textSecondary),
             ),
             const SizedBox(height: DsSpacing.stackLg),
 
@@ -124,9 +123,7 @@ class _MfaForm extends StatelessWidget {
                 ),
                 const SizedBox(width: DsSpacing.inlineSm),
                 DsLink(
-                  label: state.isResending
-                      ? 'Sending…'
-                      : 'Send a new code',
+                  label: state.isResending ? 'Sending…' : 'Send a new code',
                   onTap: state.isResending || state.isVerifying
                       ? null
                       : cubit.resend,
@@ -144,17 +141,16 @@ class _MfaForm extends StatelessWidget {
             DsLink(
               label: 'Use a different account',
               touchRow: compact,
-              onTap: state.isVerifying
-                  ? null
-                  : () => Navigator.of(context).pop(),
+              onTap:
+                  state.isVerifying ? null : () => Navigator.of(context).pop(),
             ),
 
             if (!compact) ...[
               const SizedBox(height: DsSpacing.stackXl * 2),
               Text(
                 '© 2026 OEd · ACA. All rights reserved.',
-                style: DsTypography.caption
-                    .copyWith(color: DsColors.textTertiary),
+                style:
+                    DsTypography.caption.copyWith(color: DsColors.textTertiary),
               ),
             ],
           ],

@@ -166,8 +166,7 @@ class _HeroPanel extends StatelessWidget {
               const SizedBox(width: DsSpacing.inlineSm),
               Text(
                 'Ituloy ang pangarap!',
-                style: DsTypography.label
-                    .copyWith(color: DsColors.textOnShell),
+                style: DsTypography.label.copyWith(color: DsColors.textOnShell),
               ),
             ],
           ),

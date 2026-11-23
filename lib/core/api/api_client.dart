@@ -65,8 +65,8 @@ class ApiClient {
   dynamic _unwrap(http.Response response) {
     Map<String, dynamic> envelope;
     try {
-      envelope = jsonDecode(utf8.decode(response.bodyBytes))
-          as Map<String, dynamic>;
+      envelope =
+          jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
     } on Object {
       throw ApiException(
         message: 'Unexpected response from the server.',
@@ -86,9 +86,7 @@ class ApiClient {
       message: error is String && error.isNotEmpty
           ? error
           : 'Something went wrong. Please try again.',
-      code: envelope['code'] is String
-          ? envelope['code'] as String
-          : 'UNKNOWN',
+      code: envelope['code'] is String ? envelope['code'] as String : 'UNKNOWN',
       statusCode: response.statusCode,
       fieldErrors: _fieldErrors(envelope['details']),
     );

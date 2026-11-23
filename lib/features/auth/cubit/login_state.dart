@@ -60,14 +60,11 @@ class LoginState extends Equatable {
   String? get passwordError {
     final server = serverFieldErrors['password'];
     if (server != null) return server;
-    return !showValidation || isPasswordValid
-        ? null
-        : 'Enter your password.';
+    return !showValidation || isPasswordValid ? null : 'Enter your password.';
   }
 
   /// The CTA is disabled until the terms are accepted.
-  bool get canSubmit =>
-      termsAccepted && status != LoginStatus.submitting;
+  bool get canSubmit => termsAccepted && status != LoginStatus.submitting;
 
   bool get isSubmitting => status == LoginStatus.submitting;
 
@@ -90,8 +87,7 @@ class LoginState extends Equatable {
       termsAccepted: termsAccepted ?? this.termsAccepted,
       showValidation: showValidation ?? this.showValidation,
       status: status ?? this.status,
-      errorMessage:
-          errorMessage != null ? errorMessage() : this.errorMessage,
+      errorMessage: errorMessage != null ? errorMessage() : this.errorMessage,
       serverFieldErrors: serverFieldErrors ?? this.serverFieldErrors,
       session: session != null ? session() : this.session,
       challenge: challenge != null ? challenge() : this.challenge,

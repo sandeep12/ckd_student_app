@@ -50,8 +50,7 @@ class MfaState extends Equatable {
       code: code ?? this.code,
       status: status ?? this.status,
       showIncomplete: showIncomplete ?? this.showIncomplete,
-      errorMessage:
-          errorMessage != null ? errorMessage() : this.errorMessage,
+      errorMessage: errorMessage != null ? errorMessage() : this.errorMessage,
       infoMessage: infoMessage != null ? infoMessage() : this.infoMessage,
       session: session != null ? session() : this.session,
     );

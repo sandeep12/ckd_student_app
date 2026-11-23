@@ -59,8 +59,8 @@ class _LoginFormState extends State<LoginForm> {
               compact
                   ? 'Use the email your school registered for you.'
                   : 'Use the email address your school registered for you.',
-              style: DsTypography.bodySm
-                  .copyWith(color: DsColors.textSecondary),
+              style:
+                  DsTypography.bodySm.copyWith(color: DsColors.textSecondary),
             ),
             const SizedBox(height: DsSpacing.stackLg),
 
@@ -111,8 +111,7 @@ class _LoginFormState extends State<LoginForm> {
               onTap: () {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                    content:
-                        Text('Password reset is not part of this build.'),
+                    content: Text('Password reset is not part of this build.'),
                   ),
                 );
               },
@@ -124,8 +123,7 @@ class _LoginFormState extends State<LoginForm> {
               value: state.termsAccepted,
               label: 'I agree to the Terms & Privacy Policy',
               size: compact ? DsCheckboxSize.lg : DsCheckboxSize.md,
-              onChanged:
-                  state.isSubmitting ? null : cubit.termsToggled,
+              onChanged: state.isSubmitting ? null : cubit.termsToggled,
             ),
             const SizedBox(height: DsSpacing.stackLg),
 
@@ -149,8 +147,8 @@ class _LoginFormState extends State<LoginForm> {
               const SizedBox(height: DsSpacing.stackXl * 2),
               Text(
                 '© 2026 OEd · ACA. All rights reserved.',
-                style: DsTypography.caption
-                    .copyWith(color: DsColors.textTertiary),
+                style:
+                    DsTypography.caption.copyWith(color: DsColors.textTertiary),
               ),
             ],
           ],

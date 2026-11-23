@@ -2,7 +2,7 @@ import 'package:ckd_design_system/ckd_design_system.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:material_ui/material_ui.dart';
 
-import '../../home/view/home_page.dart';
+import '../../shell/view/student_shell.dart';
 import '../cubit/login_cubit.dart';
 import '../data/auth_repository.dart';
 import 'mfa_verify_page.dart';
@@ -19,8 +19,7 @@ class LoginPage extends StatelessWidget {
       create: (context) =>
           LoginCubit(authRepository: context.read<AuthRepository>()),
       child: BlocListener<LoginCubit, LoginState>(
-        listenWhen: (previous, current) =>
-            previous.status != current.status,
+        listenWhen: (previous, current) => previous.status != current.status,
         listener: (context, state) {
           switch (state.status) {
             case LoginStatus.mfaRequired:
@@ -31,7 +30,7 @@ class LoginPage extends StatelessWidget {
               }
             case LoginStatus.success:
               Navigator.of(context).pushAndRemoveUntil(
-                HomePage.route(state.session?.user),
+                StudentShell.route(),
                 (route) => false,
               );
             case LoginStatus.idle:
@@ -43,8 +42,7 @@ class LoginPage extends StatelessWidget {
         child: AuthShell(
           heroArt: DsAuthArt.graduationCap,
           heroTitle: 'Your exams,\nall in one place',
-          heroBody:
-              'See what is coming up, scan your answer sheet from your '
+          heroBody: 'See what is coming up, scan your answer sheet from your '
               'phone, and read your results and feedback the moment they '
               'are released.',
           form: (context, compact) => LoginForm(compact: compact),
