@@ -1,0 +1,86 @@
+part of 'login_cubit.dart';
+
+/// Submission lifecycle of the login form.
+enum LoginStatus { idle, submitting, success, failure }
+
+class LoginState extends Equatable {
+  const LoginState({
+    this.email = '',
+    this.password = '',
+    this.obscurePassword = true,
+    this.termsAccepted = false,
+    this.showValidation = false,
+    this.status = LoginStatus.idle,
+    this.errorMessage,
+  });
+
+  final String email;
+  final String password;
+  final bool obscurePassword;
+  final bool termsAccepted;
+
+  /// True once the user attempted to submit with invalid input; field
+  /// errors are only rendered from then on (Figma "invalid input" state).
+  final bool showValidation;
+
+  final LoginStatus status;
+
+  /// Banner message for failed sign-in attempts
+  /// (Figma "error: invalid credentials" state).
+  final String? errorMessage;
+
+  static final RegExp _emailPattern =
+      RegExp(r'^[\w.\-+]+@[\w\-]+(\.[\w\-]+)+$');
+
+  bool get isEmailValid => _emailPattern.hasMatch(email.trim());
+  bool get isPasswordValid => password.isNotEmpty;
+  bool get isFormValid => isEmailValid && isPasswordValid;
+
+  String? get emailError {
+    if (!showValidation || isEmailValid) return null;
+    return email.trim().isEmpty
+        ? 'Enter your email address.'
+        : 'Enter a valid email address.';
+  }
+
+  String? get passwordError =>
+      !showValidation || isPasswordValid ? null : 'Enter your password.';
+
+  /// The CTA is disabled until the terms are accepted.
+  bool get canSubmit =>
+      termsAccepted && status != LoginStatus.submitting;
+
+  bool get isSubmitting => status == LoginStatus.submitting;
+
+  LoginState copyWith({
+    String? email,
+    String? password,
+    bool? obscurePassword,
+    bool? termsAccepted,
+    bool? showValidation,
+    LoginStatus? status,
+    String? Function()? errorMessage,
+  }) {
+    return LoginState(
+      email: email ?? this.email,
+      password: password ?? this.password,
+      obscurePassword: obscurePassword ?? this.obscurePassword,
+      termsAccepted: termsAccepted ?? this.termsAccepted,
+      showValidation: showValidation ?? this.showValidation,
+      status: status ?? this.status,
+      errorMessage:
+          errorMessage != null ? errorMessage() : this.errorMessage,
+    );
+  }
+
+  @override
+  List<Object?> get props => [
+        email,
+        password,
+        obscurePassword,
+        termsAccepted,
+        showValidation,
+        status,
+        errorMessage,
+      ];
+}

@@ -1,0 +1,27 @@
+name: ckd_student_app
+description: ACA CKD student application (mobile + web). Frontend only.
+publish_to: none
+version: 0.1.0
+
+environment:
+  sdk: ^3.5.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_bloc: ^9.1.1
+  equatable: ^2.0.7
+  ckd_design_system:
+    # Design-system lives in its own repo; path works for side-by-side
+    # checkouts. Swap for a git dependency once the repo is hosted.
+    path: ../ckd_design_system
+  material_ui: ^1.11.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  bloc_test: ^10.0.0
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
