@@ -1,20 +1,26 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../core/api/api_exception.dart';
+import '../data/auth_repository.dart';
+import '../data/models/auth_models.dart';
+
 part 'login_state.dart';
 
-/// Drives the student login screen.
-///
-/// Frontend-only build: [submit] simulates the network round-trip. Use the
-/// password `wrong-password` to exercise the invalid-credentials error state.
+/// Drives the student login screen against `POST /api/v1/auth/login`.
 class LoginCubit extends Cubit<LoginState> {
-  LoginCubit() : super(const LoginState());
+  LoginCubit({required AuthRepository authRepository})
+      : _authRepository = authRepository,
+        super(const LoginState());
+
+  final AuthRepository _authRepository;
 
   void emailChanged(String value) {
     emit(state.copyWith(
       email: value,
       status: LoginStatus.idle,
       errorMessage: () => null,
+      serverFieldErrors: const {},
     ));
   }
 
@@ -23,6 +29,7 @@ class LoginCubit extends Cubit<LoginState> {
       password: value,
       status: LoginStatus.idle,
       errorMessage: () => null,
+      serverFieldErrors: const {},
     ));
   }
 
@@ -46,22 +53,49 @@ class LoginCubit extends Cubit<LoginState> {
       showValidation: false,
       status: LoginStatus.submitting,
       errorMessage: () => null,
+      serverFieldErrors: const {},
     ));
 
-    // Frontend-only: stand-in for the auth API call.
-    await Future<void>.delayed(const Duration(milliseconds: 1200));
-    if (isClosed) return;
+    try {
+      final session = await _authRepository.login(
+        email: state.email,
+        password: state.password,
+        termsAccepted: state.termsAccepted,
+      );
+      if (isClosed) return;
 
-    if (state.password == 'wrong-password') {
+      if (session.mfaRequired) {
+        // MFA endpoints exist on the backend but the MFA screens are not
+        // part of this build.
+        emit(state.copyWith(
+          status: LoginStatus.failure,
+          errorMessage: () =>
+              'This account requires multi-factor authentication, which '
+              'is not available in this build yet.',
+        ));
+        return;
+      }
+
+      emit(state.copyWith(
+        status: LoginStatus.success,
+        user: () => session.user,
+      ));
+    } on ApiException catch (e) {
+      if (isClosed) return;
+
+      if (e.code == 'VALIDATION_ERROR' && e.fieldErrors.isNotEmpty) {
+        emit(state.copyWith(
+          status: LoginStatus.idle,
+          showValidation: true,
+          serverFieldErrors: e.fieldErrors,
+        ));
+        return;
+      }
+
       emit(state.copyWith(
         status: LoginStatus.failure,
-        errorMessage: () =>
-            'We could not sign you in. Check your email and password, '
-            'then try again.',
+        errorMessage: () => e.message,
       ));
-      return;
     }
-
-    emit(state.copyWith(status: LoginStatus.success));
   }
 }

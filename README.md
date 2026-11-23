@@ -39,10 +39,24 @@ flutter run                  # connected device / simulator
 flutter test
 ```
 
-## Demo behaviour (no backend yet)
+## API integration
 
-- The CTA stays disabled until "I agree to the Terms & Privacy Policy" is
-  checked (as designed).
-- Submitting with invalid input shows field errors.
-- Any credentials sign in after a simulated delay; use the password
-  `wrong-password` to see the invalid-credentials error banner.
+The login screen talks to the backend (`POST /api/v1/auth/login`):
+
+- Base URL defaults to `http://localhost:3001` (`http://10.0.2.2:3001` on
+  Android emulators). Override with
+  `flutter run --dart-define=API_BASE_URL=https://api.example.com`.
+- `lib/core/api/` — `ApiClient` unwraps the backend's
+  `{data, error, code, details}` envelope and throws typed `ApiException`s.
+- `lib/features/auth/data/` — `AuthRepository` (login / me / refresh /
+  logout) and tolerant payload models; tokens persist via
+  `shared_preferences` (swap for secure storage before production).
+- Error mapping in `LoginCubit`: `VALIDATION_ERROR` issues land on the
+  fields, `INVALID_CREDENTIALS` / `ACCOUNT_LOCKED` / network failures show
+  the danger banner, matching the Figma error states.
+- `dart run tool/api_smoke.dart` smoke-tests the client against the live
+  local backend.
+
+Behaviour: the CTA stays disabled until "I agree to the Terms & Privacy
+Policy" is checked; invalid input shows field errors before any request
+is made.

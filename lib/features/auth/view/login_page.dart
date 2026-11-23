@@ -3,6 +3,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../cubit/login_cubit.dart';
+import '../data/auth_repository.dart';
 import 'widgets/login_form.dart';
 import 'widgets/login_hero_panel.dart';
 
@@ -16,15 +17,21 @@ class LoginPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => LoginCubit(),
+      create: (context) =>
+          LoginCubit(authRepository: context.read<AuthRepository>()),
       child: BlocListener<LoginCubit, LoginState>(
         listenWhen: (previous, current) =>
             previous.status != current.status &&
             current.status == LoginStatus.success,
         listener: (context, state) {
-          // Frontend-only build: no post-login module exists yet.
+          // No post-login module exists yet.
+          final name = state.user?.name ?? state.user?.email;
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Signed in — welcome!')),
+            SnackBar(
+              content: Text(
+                name == null ? 'Signed in — welcome!' : 'Signed in — $name',
+              ),
+            ),
           );
         },
         child: Scaffold(

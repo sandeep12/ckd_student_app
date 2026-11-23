@@ -12,6 +12,8 @@ class LoginState extends Equatable {
     this.showValidation = false,
     this.status = LoginStatus.idle,
     this.errorMessage,
+    this.serverFieldErrors = const {},
+    this.user,
   });
 
   final String email;
@@ -29,6 +31,12 @@ class LoginState extends Equatable {
   /// (Figma "error: invalid credentials" state).
   final String? errorMessage;
 
+  /// Field path → message from the backend's `VALIDATION_ERROR` details.
+  final Map<String, String> serverFieldErrors;
+
+  /// Signed-in user after a successful login.
+  final AuthUser? user;
+
   static final RegExp _emailPattern =
       RegExp(r'^[\w.\-+]+@[\w\-]+(\.[\w\-]+)+$');
 
@@ -37,14 +45,21 @@ class LoginState extends Equatable {
   bool get isFormValid => isEmailValid && isPasswordValid;
 
   String? get emailError {
+    final server = serverFieldErrors['email'];
+    if (server != null) return server;
     if (!showValidation || isEmailValid) return null;
     return email.trim().isEmpty
         ? 'Enter your email address.'
         : 'Enter a valid email address.';
   }
 
-  String? get passwordError =>
-      !showValidation || isPasswordValid ? null : 'Enter your password.';
+  String? get passwordError {
+    final server = serverFieldErrors['password'];
+    if (server != null) return server;
+    return !showValidation || isPasswordValid
+        ? null
+        : 'Enter your password.';
+  }
 
   /// The CTA is disabled until the terms are accepted.
   bool get canSubmit =>
@@ -60,6 +75,8 @@ class LoginState extends Equatable {
     bool? showValidation,
     LoginStatus? status,
     String? Function()? errorMessage,
+    Map<String, String>? serverFieldErrors,
+    AuthUser? Function()? user,
   }) {
     return LoginState(
       email: email ?? this.email,
@@ -70,6 +87,8 @@ class LoginState extends Equatable {
       status: status ?? this.status,
       errorMessage:
           errorMessage != null ? errorMessage() : this.errorMessage,
+      serverFieldErrors: serverFieldErrors ?? this.serverFieldErrors,
+      user: user != null ? user() : this.user,
     );
   }
 
@@ -82,5 +101,7 @@ class LoginState extends Equatable {
         showValidation,
         status,
         errorMessage,
+        serverFieldErrors,
+        user,
       ];
 }
